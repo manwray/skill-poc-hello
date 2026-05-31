@@ -48,6 +48,14 @@ The skill calls the MCP tool `mcp__tickle__get_skill`. You must confirm that too
 > restart*, **not** the `skill: null` case (that one is a *successful* call that
 > returns null — see troubleshooting). Don't confuse the two branches.
 
+> **Already have a `tickle` MCP?** Some setups run a **local/dev** tickle (e.g. a
+> LaunchAgent on `localhost`) configured under the name `tickle`. This POC targets the
+> **hosted** server at `https://tickle.onrender.com/mcp`. If a `tickle` server is
+> already configured and `get_skill` is callable, that's fine — proceed (any tickle with
+> the `hello` builtin works). But if verification later returns `skill: null`, your
+> `tickle` is pointing at a server that lacks the builtin; point it at the hosted URL (or
+> add the hosted one under a different name and adjust `/poc-hello`'s call accordingly).
+
 ## 2. Install the skill — project-level (agent)
 
 Do this now, regardless of the MCP state — it has no dependency on the MCP, and it puts
@@ -181,8 +189,15 @@ came from the server. Confirm you actually invoked `get_skill` (the tool call is
 turn); if `/poc-hello` printed anything without that call, treat it as a failure, not a
 pass.
 
-On success, clean up the fallback breadcrumb if you wrote one:
-`rm -f .claude/skills/poc-hello/.install-state`.
+On success, optionally clean up the fallback breadcrumb if you wrote one — this is
+best-effort, not required (the file is gitignored, so leaving it is harmless):
+
+```sh
+rm -f .claude/skills/poc-hello/.install-state 2>/dev/null \
+  || : > .claude/skills/poc-hello/.install-state   # if a hook blocks rm, just blank it
+```
+
+If a safety hook blocks deletion entirely, don't fight it — the breadcrumb is inert.
 
 ## Troubleshooting
 
