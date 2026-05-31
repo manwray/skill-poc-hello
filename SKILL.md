@@ -1,24 +1,22 @@
 ---
 name: poc-hello
-description: Proof-of-concept skill for the atomic git-distributed skills model (tickle 0196). Prints a marker so we can confirm a skill distributed as its own git repo — pulled into a skills root as a submodule — was discovered and run by Claude Code. Invoke with /poc-hello.
+description: Thin-shell POC skill (tickle 0196). Carries no instructions of its own — it fetches its real instructions at runtime from the tickle MCP get_skill tool, proving server-side skill delegation. Invoke with /poc-hello.
 ---
 
-# POC: git-distributed atomic skill
+# POC thin shell — delegates to the tickle server
 
-This skill exists only to prove the distribution model in tickle ticket 0196:
-a skill that lives in **its own git repo** (`manwray/skill-poc-hello`), pulled
-into a skills root (`~/.claude/skills`) as a **top-level git submodule**, and
-discovered + invoked by Claude Code with no plugin and no conflict.
+This skill is a **thin shell**. It deliberately contains no instructions of its
+own. Its entire job is to fetch its real instructions from the tickle server,
+proving the Option-A delegation model in ticket 0196.
 
-## When invoked
+Do this:
 
-1. Print this exact marker line so the user can confirm it ran:
+1. Call the MCP tool `mcp__tickle__get_skill` with `project="tickle"` and
+   `name="hello"`.
+2. If it returns a `skill` object, follow the instructions in `skill.body`
+   exactly — those are the server-owned instructions.
+3. If it returns `skill: null` (or the tool is unavailable), report that the
+   server-side skill could not be fetched, and stop.
 
-   `✅ poc-hello ran — distributed via git submodule from manwray/skill-poc-hello`
-
-2. Then report, in one line each:
-   - the absolute path this `SKILL.md` was loaded from (use `${CLAUDE_SKILL_DIR}`)
-   - the current project / working directory, to confirm a personal-root skill is
-     available inside *this* project (e.g. tickle) — proving cross-project sharing.
-
-3. Stop. This skill does nothing else.
+Do not improvise instructions locally — the point of this skill is that the
+behavior lives on the server, not in this file.
