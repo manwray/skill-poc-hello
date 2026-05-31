@@ -59,10 +59,16 @@ user's **personal** MCP token (format `tk_…`).
    *additional* token (it does not revoke earlier ones), so kept tokens stay valid.
 
 **Add the server with the helper script** (recommended) — it reads the token from a
-silent prompt so it never lands in shell history:
+silent prompt so it never lands in shell history or in the agent's context.
+
+> **Agents: you cannot run this script yourself, and you must NOT.** It prompts for the
+> user's secret token via `read -s`, which needs a real interactive terminal. The
+> Claude Code `!` shell prefix and your Bash tool are **not** TTYs — `read -s` will
+> hang or read nothing there. So **do not** run it via `!` and **do not** run it with
+> your Bash tool. Instead, tell the **user** to run it in their **own terminal**:
 
 ```sh
-# From the cloned skill repo, or any checkout of it:
+# The USER runs this in their own terminal, from the cloned skill dir:
 ./add-tickle-mcp.sh          # local scope — private to this project (default)
 ./add-tickle-mcp.sh user     # user scope  — every project on this machine
 ```
@@ -70,8 +76,8 @@ silent prompt so it never lands in shell history:
 The script refuses `project` scope on purpose (that would commit the token into a
 shared `.mcp.json`).
 
-**If you can't run the script**, the equivalent manual command is below — but note
-the token will be saved in your shell history this way:
+**If the script can't be used**, the equivalent manual command is below — but note the
+token will be saved in the user's shell history this way, so the script is preferred:
 
 ```sh
 claude mcp add --transport http tickle https://tickle.onrender.com/mcp \
@@ -106,26 +112,52 @@ The skill's command name is its directory name, so cloning into `.../poc-hello/`
 registers **`/poc-hello`**. (HTTPS clone is used so no SSH key is needed — the repo
 is public.) Project-level skills require accepting the **workspace-trust** prompt.
 
-## 4. Restart once
+## 4. Restart — but resume so the flow survives
 
-Fully quit and relaunch Claude Code so the session picks up **both**:
+Restarting is what loads the new MCP tools, but a plain restart also **wipes this
+conversation**, so the agent forgets it was mid-install. Bridge it by **resuming**: a
+fresh `claude` process reconnects all configured MCP servers from config (loading
+`get_skill`) *and* `--continue` restores this conversation, so the agent picks up at
+step 5 automatically. (Confirmed against the Claude Code docs: resume = new process =
+fresh MCP init + full context restore.)
 
-- the tickle MCP **tools** (`get_skill`), if you added the server in step 2, and
-- the new **skill** root, if the project had no `.claude/skills/` directory before.
+**Agent — before telling the user to restart, do these two things:**
+
+1. **Drop a resume marker** as the last line of your turn so the resumed session knows
+   exactly what to do next, e.g.:
+
+   > ⏸ RESUME MARKER: tickle MCP added. After you relaunch, I will run `/poc-hello`
+   > to verify the server-side delegation.
+
+2. **Write a one-line breadcrumb file** as a fallback in case the user starts a fresh
+   session instead of resuming:
+
+   ```sh
+   echo "poc-hello install: MCP added $(date -u +%FT%TZ); next step = run /poc-hello to verify" \
+     > .claude/skills/poc-hello/.install-state
+   ```
+
+**Then tell the user to restart by resuming** (this is the key to a smooth flow):
+
+```sh
+# Fully quit Claude Code, then relaunch RESUMING this conversation:
+claude --continue        # auto-resumes the most recent session in this directory
+# or: claude --resume    # opens a picker if you want to choose the session
+```
 
 > **Do a real restart, not just `/mcp` → reconnect.** Reconnect refreshes the
 > connection but is not confirmed to load the tool *schemas* for a server added
-> mid-session — that is exactly the gotcha these docs exist to prevent. A full quit +
-> relaunch always works; if you try reconnect and `get_skill` is still uncallable,
-> stop second-guessing and restart.
+> mid-session — that is exactly the gotcha these docs exist to prevent. Quitting and
+> relaunching with `claude --continue` always works and keeps the conversation.
 >
 > If `.claude/skills/` already existed **and** tickle's tools were already loaded
 > before this session, no restart is needed — a skill added under an already-watched
-> root is discovered live. When in doubt, restart: it is cheap and removes both
+> root is discovered live. When in doubt, resume-restart: it is cheap and removes both
 > failure modes at once.
 
-After restarting, re-run `claude mcp list` to confirm `tickle … ✓ Connected`, and
-confirm `/poc-hello` now appears in the available skills.
+After relaunching, re-run `claude mcp list` to confirm `tickle … ✓ Connected`, confirm
+`/poc-hello` is listed, then go to step 5. (If you resumed, the agent should already be
+continuing on its own.)
 
 ## 5. Verify
 
@@ -137,7 +169,8 @@ Run `/poc-hello`. Expected behavior: it calls
 > (embedded server-side), not by the local SKILL.md.
 
 If you see that line, delegation works end-to-end: the instructions came from the
-server, not from the local `SKILL.md`.
+server, not from the local `SKILL.md`. Then clean up the install breadcrumb if you
+wrote one: `rm -f .claude/skills/poc-hello/.install-state`.
 
 ## Troubleshooting
 

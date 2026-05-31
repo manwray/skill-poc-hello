@@ -1,0 +1,3 @@
+# Local install breadcrumb written by INSTALL.md step 4 (fallback resume marker).
+# Never commit it — it's per-machine install state.
+.install-state
