@@ -39,6 +39,22 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 1
 fi
 
+# Tell the user where to get the token, right here, so no agent has to relay it.
+cat >&2 <<'MINT'
+
+  Need a tickle MCP token? Mint one in the web app (it is shown once):
+
+    1. Open  https://tickle.onrender.com   (sign in if prompted)
+    2. Top-bar gear icon  ->  Settings
+    3. Under  Account > MCP token ,  click  "Mint MCP token"
+         (the button reads "Re-mint token" if you already have one)
+    4. Copy the  tk_...  value it shows.
+
+  Re-minting issues an ADDITIONAL token; it does not revoke earlier ones.
+  ---------------------------------------------------------------------------
+
+MINT
+
 # Read the token silently: not echoed to the screen, not stored in shell history.
 printf 'Paste your tickle MCP token (tk_…), then press Enter: ' >&2
 read -rs TOKEN

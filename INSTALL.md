@@ -47,19 +47,15 @@ claude mcp list      # tickle should show `✓ Connected`
 ## 2. Add the tickle MCP server (only if it's missing)
 
 tickle is an HTTP MCP server at `https://tickle.onrender.com/mcp`. It requires the
-user's **personal** MCP token (format `tk_…`).
+user's **personal** MCP token (format `tk_…`), minted in the tickle web app.
 
-**Where the user gets the token** — it is minted in the tickle web app, not GitHub:
-
-1. Open <https://tickle.onrender.com> (sign in if prompted).
-2. Click the **⚙ gear** icon in the top bar to open **Settings**.
-3. Under **Account → MCP token**, click **Mint MCP token** (reads **Re-mint token**
-   if one already exists).
-4. The token is **shown once** — copy it immediately. Re-minting issues an
-   *additional* token (it does not revoke earlier ones), so kept tokens stay valid.
+**You (the agent) do not need to explain where to find the token** — the helper
+script prints the mint steps itself, right before its prompt. Just point the user at
+the script.
 
 **Add the server with the helper script** (recommended) — it reads the token from a
-silent prompt so it never lands in shell history or in the agent's context.
+silent prompt so it never lands in shell history or in the agent's context, and it
+shows the user how to mint a token first.
 
 > **Agents: you cannot run this script yourself, and you must NOT.** It prompts for the
 > user's secret token via `read -s`, which needs a real interactive terminal. The
