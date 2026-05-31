@@ -83,30 +83,52 @@ claude mcp add --transport http tickle https://tickle.onrender.com/mcp \
 
 **Never hardcode someone else's token, and never commit a real token to a repo.**
 
-## 3. Install the skill
+## 3. Install the skill — project-level
 
-Pick one location. **Project-level** is recommended for "try it on this project":
+**Install it in *this* project. Run from the project root:**
 
 ```sh
-# Project-level — only this project. Run from the project root.
 git clone https://github.com/manwray/skill-poc-hello.git .claude/skills/poc-hello
 ```
 
-If this project is a git repo and you want it pinned/versioned (the 0196 model):
-
-```sh
-git submodule add https://github.com/manwray/skill-poc-hello.git .claude/skills/poc-hello
-```
-
-Or **personal-level** — makes `/poc-hello` available in *every* project on this machine:
-
-```sh
-git clone https://github.com/manwray/skill-poc-hello.git ~/.claude/skills/poc-hello
-```
-
 The skill's command name is its directory name, so cloning into `.../poc-hello/`
-registers **`/poc-hello`**. (HTTPS clone is used so no SSH key is needed — the repo
-is public.) Project-level skills require accepting the **workspace-trust** prompt.
+registers **`/poc-hello`**. (HTTPS clone needs no SSH key — the repo is public.)
+Project-level skills require accepting the **workspace-trust** prompt.
+
+> **"Won't this pollute the project repo?" — No, and do not escape to personal-level
+> over this.** A `git clone` into `.claude/skills/poc-hello` is a *nested* git repo
+> (it has its own `.git`). Git treats it as a single **untracked** path and will not
+> commit its contents into the project. Even if the project tracks `.claude/skills/`
+> (many do), the POC stays out of the project's history.
+>
+> If you want a **guaranteed zero footprint** (so it never even shows in `git status`
+> and a stray `git add -A` can't embed it), add one local, uncommitted ignore line:
+>
+> ```sh
+> echo ".claude/skills/poc-hello/" >> .git/info/exclude
+> ```
+>
+> Do **not** install to `~/.claude/skills/` to "avoid pollution." That is the wrong
+> trade: a personal install makes `/poc-hello` appear in **every** project and
+> **overrides** any project-level copy of the same name (enterprise > personal >
+> project) — the opposite of a clean per-project trial. Only use personal-level if you
+> genuinely want this skill everywhere (see the note below), not as a pollution dodge.
+
+**Variants (only if you specifically want them):**
+
+- **Pinned / version-tracked in this project** (intentionally committed, the 0196
+  model) — use a submodule instead of a plain clone:
+
+  ```sh
+  git submodule add https://github.com/manwray/skill-poc-hello.git .claude/skills/poc-hello
+  ```
+
+- **Every project on this machine** (deliberate, not a fallback) — clone to the
+  personal skills root:
+
+  ```sh
+  git clone https://github.com/manwray/skill-poc-hello.git ~/.claude/skills/poc-hello
+  ```
 
 ## 4. Restart — but resume so the flow survives
 
@@ -190,6 +212,9 @@ rm -rf .claude/skills/poc-hello        # or ~/.claude/skills/poc-hello
 git submodule deinit -f .claude/skills/poc-hello
 git rm -f .claude/skills/poc-hello
 ```
+
+If you added the local ignore line in step 3, drop it too (edit
+`.git/info/exclude` and remove the `.claude/skills/poc-hello/` line).
 
 To also remove the tickle MCP server (if you added it just for this test):
 
