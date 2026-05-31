@@ -67,23 +67,49 @@ You now have `add-tickle-mcp.sh`, `install-skill.sh`, and `SKILL.template.md`.
 
 ## 3. Install the skill shells (agent)
 
-This is **yours to run** — `install-skill.sh` only writes files (no token, no TTY), so
-run it with your Bash tool. From the **project root**, name the skills you want:
+This is **yours to run** — the install scripts only write files (no token, no TTY), so
+run them with your Bash tool from the **project root**. Each writes a thin
+`.claude/skills/<name>/SKILL.md` (a shell calling `get_skill` with its own name) and
+appends a local `.git/info/exclude` line, so the generated shells stay out of the
+project's git history. Skill **command name == directory name == server skill name**.
+
+### 3a. Install the whole tickle set (recommended)
+
+The tickle skill set is **server-owned and discoverable — not hardcoded in the
+installer.** If `get_skill` was callable in step 1, ask the MCP what exists and install
+it all in one shot:
+
+1. Call `mcp__tickle__list_skills` (project = your project, or `tickle`). It returns the
+   server builtins (`source: "builtin"`).
+2. Take the skill **names** — typically all of them except the `hello`/`goodbye` demos —
+   and pass them to `install-all.sh`:
+
+   ```sh
+   cd /path/to/your/project
+   ~/code/tickle-skills/install-all.sh answers blast chew decompose discuss flesh groom size
+   ```
+
+`install-all.sh` stamps a shell per skill **and** installs only the agents those skills
+spawn (it knows the small skill→agent map: `flesh`→`ticket-flesher`, `size`→`size-scanner`,
+`groom`→`ticket-researcher`; other skills need none). So the list you pass drives both the
+skills and their agent deps. The agent files are thin too — they fetch their real
+instructions at spawn via `get_agent`.
+
+> Cold start (get_skill not callable yet)? You can't discover the set, so either install
+> the known POC skills `install-skill.sh hello goodbye` to bootstrap, or wait until after
+> the restart (step 5) and run 3a then.
+
+### 3b. Install specific skills (granular)
+
+To pick individual skills instead of the whole set:
 
 ```sh
-cd /path/to/your/project
-~/code/tickle-skills/install-skill.sh hello goodbye
+~/code/tickle-skills/install-skill.sh hello goodbye      # skills only
+~/code/tickle-skills/install-agent.sh ticket-flesher     # an agent, if the skill spawns one
 ```
 
-This writes `.claude/skills/hello/SKILL.md` and `.claude/skills/goodbye/SKILL.md` (each a
-thin shell calling `get_skill` with its own name) and appends a local
-`.git/info/exclude` line per skill, so they stay out of the project's git history. Skill
-**command name == directory name == server skill name** (`/hello`, `/goodbye`).
-
-> If `get_skill` was callable in step 1, call `list_skills` first to discover the
-> available server skills and install whichever you want. If it isn't callable yet
-> (cold start), just install the known POC skills `hello goodbye` — you can add more
-> after the restart.
+Use this for the POC skills or when you want a subset whose agent deps you'll manage
+yourself. `install-all.sh` is just these two composed with the skill→agent map applied.
 
 ## 4. Add the tickle MCP server — only if it's missing (user runs it)
 
@@ -180,9 +206,11 @@ rm -f .claude/skills/.install-state 2>/dev/null || : > .claude/skills/.install-s
 ## Teardown
 
 ```sh
-# remove the generated shells
+# remove the generated skill shells (whichever you installed)
 rm -rf .claude/skills/hello .claude/skills/goodbye
-# and drop their lines from .git/info/exclude
+# and the thin agent files, if any were installed (install-all / install-agent)
+rm -f .claude/agents/ticket-flesher.md .claude/agents/size-scanner.md .claude/agents/ticket-researcher.md
+# then drop their lines from .git/info/exclude
 
 # remove the tickle MCP (match the scope it was added with)
 claude mcp remove "tickle" -s local    # or: -s user
