@@ -10,15 +10,44 @@ Follow these steps exactly. Do not invent behavior; verify each step.
 ## 1. Prerequisite — the tickle MCP must be reachable
 
 The skill calls the MCP tool `mcp__tickle__get_skill`. Confirm the **tickle** MCP
-server is connected in this session and exposes `get_skill`.
+server is connected in this session and exposes `get_skill` (run `claude mcp list`
+— tickle should show `✓ Connected`).
 
 - If it is connected but you don't see `get_skill`, the session likely predates the
   tool's deploy — tell the user to reconnect the tickle MCP (`/mcp` → reconnect) or
   restart the session.
-- If tickle is **not** configured at all, it is an HTTP MCP server at
-  `https://tickle.onrender.com/mcp` and requires the user's personal `Bearer` token.
-  **Do not hardcode someone else's token.** Ask the user for their tickle PAT (or to
-  add the server themselves) before continuing.
+- If tickle is **not** configured at all, add it. It is an HTTP MCP server at
+  `https://tickle.onrender.com/mcp` and requires the user's **personal** `Bearer`
+  token (their tickle MCP token, format `tk_…`).
+
+  **Where the user gets the token** — it is minted in the tickle web app, not from
+  GitHub:
+
+  1. Open the tickle web app: <https://tickle.onrender.com> (sign in if prompted).
+  2. Click the **⚙ gear** icon in the top bar to open **Settings**.
+  3. Under the **Account** section, find **MCP token** and click
+     **Mint MCP token** (the button reads **Re-mint token** if one already exists).
+  4. The token is **shown once** — copy it immediately. You can re-mint anytime if
+     it's lost; minting issues an *additional* token (it does not revoke earlier
+     ones), so any token you've kept stays valid.
+
+  **Never hardcode someone else's token, and never commit a real token to a repo.**
+  Once the user has pasted you their token, run (substituting it for
+  `<YOUR_TICKLE_PAT>`):
+
+  ```sh
+  claude mcp add --transport http tickle https://tickle.onrender.com/mcp \
+    --header "Authorization: Bearer <YOUR_TICKLE_PAT>"
+  ```
+
+  Scope notes:
+  - Default scope is **local** — private to you in this project. Recommended here.
+  - Add `-s user` to make tickle available in **every** project on this machine.
+  - Avoid `-s project`: that writes the server into a committed `.mcp.json`, which
+    would leak your token to anyone with repo access.
+
+  After adding, restart the session (or `/mcp` → reconnect) so the tools load, then
+  re-run `claude mcp list` to confirm `tickle … ✓ Connected`.
 
 ## 2. Install the skill
 
@@ -85,4 +114,10 @@ rm -rf .claude/skills/poc-hello        # or ~/.claude/skills/poc-hello
 # submodule
 git submodule deinit -f .claude/skills/poc-hello
 git rm -f .claude/skills/poc-hello
+```
+
+To also remove the tickle MCP server (if you added it just for this test):
+
+```sh
+claude mcp remove "tickle" -s local    # match the scope you added it with
 ```
