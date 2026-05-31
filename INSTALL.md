@@ -1,237 +1,192 @@
-# Install `poc-hello` (agent instructions)
+# Install tickle skills (agent instructions)
 
-You are an agent installing the **`poc-hello`** Claude Code skill into the current
-project. It is a *thin-shell* skill: running `/poc-hello` makes it fetch its real
-instructions at runtime from the **tickle MCP** `get_skill` tool and follow them.
-This proves the server-side skill-delegation model (tickle ticket 0196).
+This repo (**`tickle-skills`**) is the installer for tickle's **server-owned thin-shell
+skills** (tickle ticket 0196). Each skill's *behavior* lives server-side and is fetched
+at runtime via the tickle MCP `get_skill` tool; on disk, each skill is a tiny **thin
+shell** that just calls `get_skill`. This installer (a) wires the tickle MCP and (b)
+stamps out a thin shell per skill with `install-skill.sh`.
 
 Follow these steps exactly. Do not invent behavior; verify each step.
 
 > **Who does what.** Steps are labelled **(agent)** or **(user)**. You, the agent, do
-> the on-disk work (steps 1–2). The **user** must do the things you cannot: paste a
-> secret token, restart Claude Code, click trust prompts (step 3–4). Step 5 is yours.
-> When a step is the user's, do your prep, then **STOP and hand control to the user**
-> with clear instructions — don't idle-wait, and don't try to do their part for them.
+> the on-disk work (clone, generate shells). The **user** must do what you cannot: paste
+> a secret token into a terminal, restart Claude Code, accept trust prompts. When a step
+> is the user's, do your prep, then **STOP and hand control to the user** — don't
+> idle-wait, and don't try to do their part for them.
 
 > **Fetching this file?** Use the raw URL, not the GitHub HTML page:
-> `https://raw.githubusercontent.com/manwray/skill-poc-hello/main/INSTALL.md`
-> (the `/blob/` page is ~250 KB of HTML chrome; raw is the ~4 KB doc).
+> `https://raw.githubusercontent.com/manwray/tickle-skills/main/INSTALL.md`
 
 > **Heads-up — this may be a two-phase install.** If the tickle MCP is **not already
 > connected with its tools loaded**, you cannot finish in one session: adding an MCP
 > server requires a **full Claude Code restart** before its tools become callable. The
 > steps are ordered so the on-disk work happens first, then the user restarts **once**
-> (by resuming, step 4), then you verify. A restart in the middle is expected — not a
-> failure.
+> (by resuming, step 5), then you verify. A restart in the middle is expected.
+>
+> **Do a real restart — not just `/mcp` → reconnect.** When a server is added
+> *mid-session*, reconnect is not confirmed to load the tool *schemas*; fully quit and
+> relaunch. Treat reconnect as a shortcut only — if `get_skill` still isn't callable
+> after it, restart for real.
 
 ## 1. Check the prerequisite (agent)
 
-The skill calls the MCP tool `mcp__tickle__get_skill`. You must confirm that tool is
-**actually callable in this session** — which is *not* the same as the server showing
-"connected". Determine it like this, in order:
+The thin shells call `mcp__tickle__get_skill`. Confirm that tool is **actually callable
+in this session** — which is *not* the same as the server showing "connected":
 
 1. **Is `mcp__tickle__get_skill` in your available tools right now?** Look at your own
    tool list (some harnesses surface MCP tools lazily — search/list your tools for the
-   name). If you can see it, it's loaded → tickle is fully wired. **Skip to step 2,
-   then step 5.**
+   name). If you can see it → tickle is fully wired; you may also call `list_skills` now
+   to see which server skills exist. Skip step 4 (the MCP is already there).
 2. If it is **not** in your tool list, run `claude mcp list`:
-   - **tickle shown `✓ Connected`** → the server is configured but its tools aren't
-     loaded into *this* session (common when the session started before tickle was
-     added). You do **not** re-add it; it just needs a restart (step 4). Do step 2, then
-     hand off for the restart.
-   - **tickle not listed at all** → it isn't configured. Do step 2, then step 3 to add
-     it, then the restart.
+   - **tickle shown `✓ Connected`** → configured but tools aren't loaded into *this*
+     session. You do **not** re-add it; it needs a restart (step 5).
+   - **tickle not listed at all** → not configured; you'll add it in step 4.
 
-> **Two traps to avoid:** (a) A `✓ Connected` line is **not** proof the tool is loaded
-> — only your tool list is. (b) Do **not** "probe" by calling `get_skill` and reading a
-> failure as "the skill is broken." A missing/erroring tool here means *not loaded →
-> restart*, **not** the `skill: null` case (that one is a *successful* call that
-> returns null — see troubleshooting). Don't confuse the two branches.
+> **Two traps:** (a) `✓ Connected` is **not** proof the tool is loaded — only your tool
+> list is. (b) Don't "probe" by calling `get_skill` and reading a failure as "broken": a
+> missing/erroring tool means *not loaded → restart*, **not** the `skill: null` case
+> (that's a *successful* call returning null — see troubleshooting).
 
 > **Already have a `tickle` MCP?** Some setups run a **local/dev** tickle (e.g. a
-> LaunchAgent on `localhost`) configured under the name `tickle`. This POC targets the
-> **hosted** server at `https://tickle.onrender.com/mcp`. If a `tickle` server is
-> already configured and `get_skill` is callable, that's fine — proceed (any tickle with
-> the `hello` builtin works). But if verification later returns `skill: null`, your
-> `tickle` is pointing at a server that lacks the builtin; point it at the hosted URL (or
-> add the hosted one under a different name and adjust `/poc-hello`'s call accordingly).
+> LaunchAgent on `localhost`) under the name `tickle`. These skills target the **hosted**
+> server at `https://tickle.onrender.com/mcp`. If a `tickle` is already configured and
+> `get_skill` is callable, proceed (any tickle with these builtins works). If
+> verification later returns `skill: null`, your `tickle` points at a server lacking the
+> builtins → repoint it at the hosted URL.
 
-## 2. Install the skill — project-level (agent)
+## 2. Clone the installer (agent)
 
-Do this now, regardless of the MCP state — it has no dependency on the MCP, and it puts
-the helper script (needed in step 3) on disk. **Install it in *this* project, from the
-project root:**
+Clone this repo **outside** the target project (so the project ends up containing only
+the generated thin shells, not the installer). Anywhere works; examples use a tools dir:
 
 ```sh
-git clone https://github.com/manwray/skill-poc-hello.git .claude/skills/poc-hello
+git clone https://github.com/manwray/tickle-skills.git ~/code/tickle-skills
 ```
 
-The skill's command name is its directory name, so cloning into `.../poc-hello/`
-registers **`/poc-hello`**. (HTTPS clone needs no SSH key — the repo is public.)
+You now have `add-tickle-mcp.sh`, `install-skill.sh`, and `SKILL.template.md`.
 
-> **"Won't this pollute the project repo?" — No, and do not escape to personal-level
-> over this.** A `git clone` into `.claude/skills/poc-hello` is a *nested* git repo (it
-> has its own `.git`). Git treats it as a single **untracked** path and will not commit
-> its contents into the project. Even if the project tracks `.claude/skills/` (many
-> do), the POC stays out of the project's history.
->
-> For a **guaranteed zero footprint** (never shows in `git status`; a stray `git add
-> -A` can't embed it), add one local, uncommitted ignore line:
->
-> ```sh
-> echo ".claude/skills/poc-hello/" >> .git/info/exclude
-> ```
->
-> Do **not** install to `~/.claude/skills/` to "avoid pollution." That makes
-> `/poc-hello` appear in **every** project and **overrides** any project-level copy
-> (enterprise > personal > project) — the opposite of a clean per-project trial. Use
-> personal-level only if you genuinely want this skill everywhere (variant below).
+## 3. Install the skill shells (agent)
 
-**Variants (only if you specifically want them):**
+This is **yours to run** — `install-skill.sh` only writes files (no token, no TTY), so
+run it with your Bash tool. From the **project root**, name the skills you want:
 
-- **Pinned / version-tracked in this project** (intentionally committed, the 0196
-  model) — a submodule instead of a plain clone:
-  `git submodule add https://github.com/manwray/skill-poc-hello.git .claude/skills/poc-hello`
-- **Every project on this machine** (deliberate, not a fallback) — clone to
-  `~/.claude/skills/poc-hello` instead.
+```sh
+cd /path/to/your/project
+~/code/tickle-skills/install-skill.sh hello goodbye
+```
 
-> Project-level skills require accepting a **workspace-trust** prompt. That prompt is
-> the **user's** click — you cannot accept it for them; mention it when you hand off.
+This writes `.claude/skills/hello/SKILL.md` and `.claude/skills/goodbye/SKILL.md` (each a
+thin shell calling `get_skill` with its own name) and appends a local
+`.git/info/exclude` line per skill, so they stay out of the project's git history. Skill
+**command name == directory name == server skill name** (`/hello`, `/goodbye`).
 
-**If step 1 found `get_skill` already callable, you are done with setup — go to step 5.**
-Otherwise continue to step 3.
+> If `get_skill` was callable in step 1, call `list_skills` first to discover the
+> available server skills and install whichever you want. If it isn't callable yet
+> (cold start), just install the known POC skills `hello goodbye` — you can add more
+> after the restart.
 
-## 3. Add the tickle MCP server — only if it's missing (user runs it)
+## 4. Add the tickle MCP server — only if it's missing (user runs it)
 
-tickle is an HTTP MCP server at `https://tickle.onrender.com/mcp` that needs the user's
-**personal** MCP token (`tk_…`). The helper script you just cloned reads the token from
-a silent prompt (never shell history, never your context) and prints the mint steps
-itself.
+Skip if step 1 found `get_skill` callable, or found tickle `✓ Connected` (then it just
+needs the restart in step 5). Otherwise the MCP must be added. It needs the user's
+**personal** token (`tk_…`); the helper script reads it from a silent prompt and prints
+the mint steps itself.
 
 > **You (the agent) cannot run this script and must NOT.** It prompts via `read -s`,
-> which needs a real interactive terminal. The Claude Code `!` prefix and your Bash
-> tool are **not** TTYs — `read -s` will hang or read nothing. Do **not** run it via
-> `!` and do **not** run it with your Bash tool. **Hand off: tell the user to run it in
-> their own terminal:**
+> which needs a real interactive terminal. The Claude Code `!` prefix and your Bash tool
+> are **not** TTYs — `read -s` will hang or read nothing. Do **not** run it via `!` or
+> your Bash tool. **Hand off: tell the user to run it in their own terminal:**
 
 ```sh
-# The USER runs this in their own terminal, from the project root:
-./.claude/skills/poc-hello/add-tickle-mcp.sh          # local scope (default)
-./.claude/skills/poc-hello/add-tickle-mcp.sh user     # user scope — every project
+# The USER runs this in their own terminal:
+~/code/tickle-skills/add-tickle-mcp.sh          # local scope (default)
+~/code/tickle-skills/add-tickle-mcp.sh user     # user scope — every project
 ```
 
-The script refuses `project` scope on purpose (that would commit the token into a
-shared `.mcp.json`).
+The script refuses `project` scope (that would commit the token into a shared
+`.mcp.json`). **Never hardcode someone else's token, or commit a real token.**
 
-**If the script can't be used**, the user can run the equivalent manually — but the
-token lands in their shell history this way, so the script is preferred:
+## 5. Restart by resuming, so the flow survives (user restarts; you prep)
 
-```sh
-claude mcp add --transport http tickle https://tickle.onrender.com/mcp \
-  --scope local \
-  --header "Authorization: Bearer <THE_USERS_TOKEN>"
-```
+A restart loads the new MCP tools, but a plain restart also **wipes this conversation**.
+Bridge it by **resuming**: a fresh `claude` process reconnects all configured MCP
+servers (loading `get_skill`) *and* `--continue` restores this conversation, so you pick
+up at step 6 automatically.
 
-**Never hardcode someone else's token, and never commit a real token to a repo.**
+**Before handing off, do both:**
 
-## 4. Restart by resuming, so the flow survives (user restarts; you prep)
+1. **Drop a resume marker** as the last line of your turn (primary continuity):
 
-A restart is what loads the new MCP tools, but a plain restart also **wipes this
-conversation**. Bridge it by **resuming**: a fresh `claude` process reconnects all
-configured MCP servers from config (loading `get_skill`) *and* `--continue` restores
-this conversation, so you pick up at step 5 automatically. (Confirmed against the Claude
-Code docs: resume = new process = fresh MCP init + full context restore.)
+   > ⏸ RESUME MARKER: tickle skills cloned + shells installed; MCP added. After you
+   > relaunch, I will re-check `get_skill` is callable, then run the installed skills to
+   > verify.
 
-**Before you hand off for the restart, do both:**
-
-1. **Drop a resume marker** as the last line of your turn — this is the *primary*
-   continuity mechanism (the resumed you re-reads the transcript and obeys it):
-
-   > ⏸ RESUME MARKER: tickle MCP added; skill cloned. After you relaunch, I will
-   > re-check that `get_skill` is callable and then run `/poc-hello` to verify.
-
-2. **Write a fallback breadcrumb** — only used if the user starts a *fresh* session
-   instead of resuming. Point it at wherever you installed the skill (project path
-   shown):
+2. **Write a fallback breadcrumb** (only used if the user starts a fresh session):
 
    ```sh
-   echo "poc-hello install: MCP added; next = re-check get_skill, then /poc-hello" \
-     > .claude/skills/poc-hello/.install-state
+   echo "tickle-skills install: shells in place, MCP added; next = re-check get_skill, then verify" \
+     > .claude/skills/.install-state
    ```
 
-**Then hand off — tell the user to fully quit Claude Code and relaunch by resuming:**
+**Then tell the user to fully quit Claude Code and relaunch by resuming:**
 
 ```sh
 claude --continue        # auto-resumes the most recent session in this directory
-# or: claude --resume    # picker, if they want to choose the session
+# or: claude --resume    # picker
 ```
 
-> **A real restart, not just `/mcp` → reconnect.** Reconnect refreshes the connection
-> but is not confirmed to load tool *schemas* for a mid-session add — exactly the gotcha
-> these docs exist to prevent. Quitting and relaunching with `claude --continue` always
-> works and keeps the conversation.
-
-## 5. Verify (agent, after resume)
+## 6. Verify (agent, after resume)
 
 **First re-run the step-1 callability check.** Is `mcp__tickle__get_skill` now in your
-tool list? If **not**, do not proceed — the restart didn't take; tell the user to fully
-quit and relaunch again (a `/mcp` reconnect is not enough). Only once it's callable:
+tool list? If **not**, the restart didn't take — tell the user to fully quit and relaunch
+again (a `/mcp` reconnect is not enough). Only once it's callable:
 
-Run `/poc-hello`. It calls `mcp__tickle__get_skill(project="tickle", name="hello")` and
-prints, from the **server-returned** body:
+Run each installed skill and confirm it prints its **own, distinct** server-delivered
+line:
 
-> 👋 Hello — these instructions were served by the tickle MCP get_skill tool
-> (embedded server-side), not by the local SKILL.md.
+- `/hello` →
+  > 👋 Hello — these instructions were served by the tickle MCP get_skill tool
+  > (embedded server-side), not by the local SKILL.md.
+- `/goodbye` →
+  > 👋 Goodbye — this is the SECOND server-owned skill, also delivered by the tickle MCP
+  > get_skill tool (embedded server-side). Two skills now coexist…
 
-This is a valid proof because the thin-shell `SKILL.md` **does not contain that text** —
-it only contains instructions to *call* `get_skill`. So seeing the line means the body
-came from the server. Confirm you actually invoked `get_skill` (the tool call is in your
-turn); if `/poc-hello` printed anything without that call, treat it as a failure, not a
-pass.
+Each is a valid proof because the thin-shell `SKILL.md` files **contain none of that
+text** — only an instruction to *call* `get_skill`. So the text must have come from the
+server, and the two skills printing **different** bodies proves `get_skill` resolves each
+by name. Confirm you actually invoked `get_skill` for each (the tool calls are in your
+turn); text without a call is a failure, not a pass.
 
-On success, optionally clean up the fallback breadcrumb if you wrote one — this is
-best-effort, not required (the file is gitignored, so leaving it is harmless):
+On success, optionally clean up the breadcrumb (best-effort — it's gitignored and inert,
+so don't fight a hook over it):
 
 ```sh
-rm -f .claude/skills/poc-hello/.install-state 2>/dev/null \
-  || : > .claude/skills/poc-hello/.install-state   # if a hook blocks rm, just blank it
+rm -f .claude/skills/.install-state 2>/dev/null || : > .claude/skills/.install-state
 ```
-
-If a safety hook blocks deletion entirely, don't fight it — the breadcrumb is inert.
 
 ## Troubleshooting
 
 - **`get_skill` not in your tool list though `claude mcp list` says `✓ Connected`** →
-  tools aren't loaded into this session. **Fully restart Claude Code (resume with
-  `claude --continue`)** — do not rely on `/mcp` → reconnect. This is the #1 gotcha
-  (steps 1, 4, 5).
-- **`skill: null` returned from a *successful* get_skill call** → the server has no
-  `hello` skill, or you're on a stale/old MCP session. Reconnect the tickle MCP and
+  tools aren't loaded into this session. **Fully restart (resume with `claude
+  --continue`)** — don't rely on `/mcp` → reconnect. The #1 gotcha (steps 1, 5, 6).
+- **`skill: null` from a *successful* get_skill call** → the server lacks that skill, or
+  you're on a stale MCP session / a `tickle` pointed at the wrong server. Reconnect and
   retry. (Different from the tool being absent — that's the restart case above.)
-- **`/poc-hello` not listed** → restart (step 4) and have the user accept the
-  workspace-trust prompt.
-- **`/poc-hello` runs but seems stale / wrong** → a personal `~/.claude/skills/poc-hello`
-  shadows the project copy (enterprise > personal > project). Remove the personal one if
-  you didn't intend it.
+- **`/hello` or `/goodbye` not listed** → if `.claude/skills/` was brand-new this
+  session, restart; accept the workspace-trust prompt (the user's click).
+- **A skill runs but seems stale/wrong** → a personal `~/.claude/skills/<name>` shadows
+  the project copy (precedence: enterprise > personal > project).
 
 ## Teardown
 
 ```sh
-# plain clone
-rm -rf .claude/skills/poc-hello        # or ~/.claude/skills/poc-hello
+# remove the generated shells
+rm -rf .claude/skills/hello .claude/skills/goodbye
+# and drop their lines from .git/info/exclude
 
-# submodule
-git submodule deinit -f .claude/skills/poc-hello
-git rm -f .claude/skills/poc-hello
-```
-
-If you added the local ignore line in step 2, drop it too (edit `.git/info/exclude` and
-remove the `.claude/skills/poc-hello/` line).
-
-To also remove the tickle MCP server (if you added it just for this test) — **match the
-scope it was added with** (`local` is the script's default; use `user` if that was
-chosen):
-
-```sh
+# remove the tickle MCP (match the scope it was added with)
 claude mcp remove "tickle" -s local    # or: -s user
+
+# the installer clone is standalone — delete it wherever you put it
+rm -rf ~/code/tickle-skills
 ```
