@@ -5,10 +5,10 @@
 #
 # The tickle skill SET is server-owned and discoverable — it is NOT hardcoded here.
 # The installing agent asks the tickle MCP `list_skills`, takes the builtin skill
-# names (skipping the hello/goodbye demos unless wanted), and passes them in:
+# names, and passes them in:
 #
 #   cd /path/to/your/project
-#   /path/to/tickle-skills/install-all.sh answers blast chew decompose discuss flesh groom size
+#   /path/to/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
 #
 # This script then:
 #   1. stamps a thin shell per skill (delegates to install-skill.sh), and
@@ -34,13 +34,15 @@ if [ "$#" -eq 0 ]; then
 fi
 
 # skill -> agent it spawns. Skills not listed here need no agent. Keep in sync with the
-# server's agent set (get_agent): currently ticket-flesher, size-scanner, ticket-researcher.
+# server's agent set (get_agent): currently ticket-flesher, size-scanner,
+# ticket-researcher, conform-lens.
 agent_for() {
   case "$1" in
-    flesh) echo ticket-flesher ;;
-    size)  echo size-scanner ;;
-    groom) echo ticket-researcher ;;
-    *)     echo "" ;;
+    flesh|intake)    echo ticket-flesher ;;
+    size)            echo size-scanner ;;
+    groom|research)  echo ticket-researcher ;;
+    conform)         echo conform-lens ;;
+    *)               echo "" ;;
   esac
 }
 

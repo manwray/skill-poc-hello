@@ -81,22 +81,21 @@ it all in one shot:
 
 1. Call `mcp__tickle__list_skills` (project = your project, or `tickle`). It returns the
    server builtins (`source: "builtin"`).
-2. Take the skill **names** — typically all of them except the `hello`/`goodbye` demos —
-   and pass them to `install-all.sh`:
+2. Take the skill **names** — typically all of them — and pass them to
+   `install-all.sh`:
 
    ```sh
    cd /path/to/your/project
-   ~/code/tickle-skills/install-all.sh answers blast chew decompose discuss flesh groom size
+   ~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
    ```
 
 `install-all.sh` stamps a shell per skill **and** installs only the agents those skills
-spawn (it knows the small skill→agent map: `flesh`→`ticket-flesher`, `size`→`size-scanner`,
-`groom`→`ticket-researcher`; other skills need none). So the list you pass drives both the
-skills and their agent deps. The agent files are thin too — they fetch their real
+spawn (it knows the small skill→agent map: `flesh`/`intake`→`ticket-flesher`,
+`size`→`size-scanner`, `groom`/`research`→`ticket-researcher`, `conform`→`conform-lens`;
+other skills need none). So the list you pass drives both the skills and their agent deps. The agent files are thin too — they fetch their real
 instructions at spawn via `get_agent`.
 
-> Cold start (get_skill not callable yet)? You can't discover the set, so either install
-> the known POC skills `install-skill.sh hello goodbye` to bootstrap, or wait until after
+> Cold start (get_skill not callable yet)? You can't discover the set — wait until after
 > the restart (step 5) and run 3a then.
 
 ### 3b. Install specific skills (granular)
@@ -104,11 +103,11 @@ instructions at spawn via `get_agent`.
 To pick individual skills instead of the whole set:
 
 ```sh
-~/code/tickle-skills/install-skill.sh hello goodbye      # skills only
+~/code/tickle-skills/install-skill.sh blast order        # skills only
 ~/code/tickle-skills/install-agent.sh ticket-flesher     # an agent, if the skill spawns one
 ```
 
-Use this for the POC skills or when you want a subset whose agent deps you'll manage
+Use this when you want a subset whose agent deps you'll manage
 yourself. `install-all.sh` is just these two composed with the skill→agent map applied.
 
 ## 4. Add the tickle MCP server — only if it's missing (user runs it)
@@ -167,21 +166,13 @@ claude --continue        # auto-resumes the most recent session in this director
 tool list? If **not**, the restart didn't take — tell the user to fully quit and relaunch
 again (a `/mcp` reconnect is not enough). Only once it's callable:
 
-Run each installed skill and confirm it prints its **own, distinct** server-delivered
-line:
-
-- `/hello` →
-  > 👋 Hello — these instructions were served by the tickle MCP get_skill tool
-  > (embedded server-side), not by the local SKILL.md.
-- `/goodbye` →
-  > 👋 Goodbye — this is the SECOND server-owned skill, also delivered by the tickle MCP
-  > get_skill tool (embedded server-side). Two skills now coexist…
-
-Each is a valid proof because the thin-shell `SKILL.md` files **contain none of that
-text** — only an instruction to *call* `get_skill`. So the text must have come from the
-server, and the two skills printing **different** bodies proves `get_skill` resolves each
-by name. Confirm you actually invoked `get_skill` for each (the tool calls are in your
-turn); text without a call is a failure, not a pass.
+**Verify by fetching, not by running** (the real skills mutate tickets — don't invoke
+them as a smoke test). Call `mcp__tickle__get_skill` directly for two installed names,
+e.g. `name="order"` and `name="blast"` (`project` = your project), and confirm each
+returns a **non-null `skill` whose body is that skill's full instructions** — two
+different names returning two distinct server bodies proves `get_skill` resolves each by
+name. The thin-shell `SKILL.md` files contain none of that text, so the bodies must have
+come from the server. (`skill: null` → see troubleshooting.)
 
 On success, optionally clean up the breadcrumb (best-effort — it's gitignored and inert,
 so don't fight a hook over it):
@@ -198,18 +189,19 @@ rm -f .claude/skills/.install-state 2>/dev/null || : > .claude/skills/.install-s
 - **`skill: null` from a *successful* get_skill call** → the server lacks that skill, or
   you're on a stale MCP session / a `tickle` pointed at the wrong server. Reconnect and
   retry. (Different from the tool being absent — that's the restart case above.)
-- **`/hello` or `/goodbye` not listed** → if `.claude/skills/` was brand-new this
-  session, restart; accept the workspace-trust prompt (the user's click).
+- **A freshly stamped skill not listed as a slash command** → if `.claude/skills/` was
+  brand-new this session, restart; accept the workspace-trust prompt (the user's click).
 - **A skill runs but seems stale/wrong** → a personal `~/.claude/skills/<name>` shadows
   the project copy (precedence: enterprise > personal > project).
 
 ## Teardown
 
 ```sh
-# remove the generated skill shells (whichever you installed)
-rm -rf .claude/skills/hello .claude/skills/goodbye
+# remove the generated skill shells (whichever you installed), e.g. the full set:
+rm -rf $(printf '.claude/skills/%s ' attention audit blast build conform decompose discuss flesh groom intake order research size)
 # and the thin agent files, if any were installed (install-all / install-agent)
-rm -f .claude/agents/ticket-flesher.md .claude/agents/size-scanner.md .claude/agents/ticket-researcher.md
+rm -f .claude/agents/ticket-flesher.md .claude/agents/size-scanner.md \
+      .claude/agents/ticket-researcher.md .claude/agents/conform-lens.md
 # then drop their lines from .git/info/exclude
 
 # remove the tickle MCP (match the scope it was added with)

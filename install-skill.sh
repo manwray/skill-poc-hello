@@ -12,7 +12,7 @@
 #
 # Usage:
 #   cd /path/to/your/project
-#   /path/to/tickle-skills/install-skill.sh hello goodbye
+#   /path/to/tickle-skills/install-skill.sh blast order
 #
 # Discover available server skills first by asking the tickle MCP `list_skills`
 # (server-owned builtins are listed). Then install the ones you want.
