@@ -41,6 +41,27 @@ cd /path/to/your/project
 The generated shells/agents are git-excluded (`.git/info/exclude`) so they stay out of
 the consuming project's history.
 
+## Recommended CLAUDE.md snippet — parallel sessions
+
+The skills carry tickle's parallel-work convention (tickle 0373): **agent work never
+mutates the shared checkout's branch state**. The skill bodies enforce it themselves,
+but human contributors and non-tickle agents don't read skill bodies — paste this into
+the consuming project's `CLAUDE.md` (or conventions doc) so every session follows the
+same rule:
+
+```markdown
+## Parallel sessions / collision-free git
+Multiple agent sessions may run concurrently in this repo:
+- Never stash or branch-switch the shared checkout — no `git stash`, no
+  `git checkout <branch>` in a checkout someone else may be using.
+- Single-commit-on-main work: proceed only when the tree is clean AND on main;
+  otherwise abort and say so (or do the work in a dedicated worktree on a temp
+  branch and `git push origin HEAD:main`).
+- Branch-scoped work: use a dedicated git worktree (`git worktree add`) — a
+  branch is exclusive to one worktree.
+- Stage explicit files; never `git add -A`.
+```
+
 ## Teardown
 
 See the Teardown section in [INSTALL.md](INSTALL.md).
