@@ -8,7 +8,7 @@
 # names, and passes them in:
 #
 #   cd /path/to/your/project
-#   /path/to/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
+#   /path/to/tickle-skills/install-all.sh attention audit blast build conform decompose discuss groom intake order research size
 #
 # This script then:
 #   1. stamps a thin shell per skill (delegates to install-skill.sh), and
@@ -34,11 +34,11 @@ if [ "$#" -eq 0 ]; then
 fi
 
 # skill -> agent it spawns. Skills not listed here need no agent. Keep in sync with the
-# server's agent set (get_agent): currently ticket-flesher, size-scanner,
+# server's agent set (get_agent): currently ticket-intake, size-scanner,
 # ticket-researcher, conform-lens.
 agent_for() {
   case "$1" in
-    flesh|intake)    echo ticket-flesher ;;
+    intake)          echo ticket-intake ;;
     size)            echo size-scanner ;;
     groom|research)  echo ticket-researcher ;;
     conform)         echo conform-lens ;;

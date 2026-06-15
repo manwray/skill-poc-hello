@@ -86,11 +86,11 @@ it all in one shot:
 
    ```sh
    cd /path/to/your/project
-   ~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
+   ~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss groom intake order research size
    ```
 
 `install-all.sh` stamps a shell per skill **and** installs only the agents those skills
-spawn (it knows the small skill→agent map: `flesh`/`intake`→`ticket-flesher`,
+spawn (it knows the small skill→agent map: `intake`→`ticket-intake`,
 `size`→`size-scanner`, `groom`/`research`→`ticket-researcher`, `conform`→`conform-lens`;
 other skills need none). So the list you pass drives both the skills and their agent deps. The agent files are thin too — they fetch their real
 instructions at spawn via `get_agent`.
@@ -104,7 +104,7 @@ To pick individual skills instead of the whole set:
 
 ```sh
 ~/code/tickle-skills/install-skill.sh blast order        # skills only
-~/code/tickle-skills/install-agent.sh ticket-flesher     # an agent, if the skill spawns one
+~/code/tickle-skills/install-agent.sh ticket-intake      # an agent, if the skill spawns one
 ```
 
 Use this when you want a subset whose agent deps you'll manage
@@ -198,9 +198,9 @@ rm -f .claude/skills/.install-state 2>/dev/null || : > .claude/skills/.install-s
 
 ```sh
 # remove the generated skill shells (whichever you installed), e.g. the full set:
-rm -rf $(printf '.claude/skills/%s ' attention audit blast build conform decompose discuss flesh groom intake order research size)
+rm -rf $(printf '.claude/skills/%s ' attention audit blast build conform decompose discuss groom intake order research size)
 # and the thin agent files, if any were installed (install-all / install-agent)
-rm -f .claude/agents/ticket-flesher.md .claude/agents/size-scanner.md \
+rm -f .claude/agents/ticket-intake.md .claude/agents/size-scanner.md \
       .claude/agents/ticket-researcher.md .claude/agents/conform-lens.md
 # then drop their lines from .git/info/exclude
 
