@@ -86,7 +86,7 @@ it all in one shot:
 
    ```sh
    cd /path/to/your/project
-   ~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
+   ~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake research size
    ```
 
 `install-all.sh` stamps a shell per skill **and** installs only the agents those skills
@@ -103,7 +103,7 @@ instructions at spawn via `get_agent`.
 To pick individual skills instead of the whole set:
 
 ```sh
-~/code/tickle-skills/install-skill.sh blast order        # skills only
+~/code/tickle-skills/install-skill.sh blast        # skills only
 ~/code/tickle-skills/install-agent.sh ticket-flesher     # an agent, if the skill spawns one
 ```
 
@@ -168,7 +168,7 @@ again (a `/mcp` reconnect is not enough). Only once it's callable:
 
 **Verify by fetching, not by running** (the real skills mutate tickets — don't invoke
 them as a smoke test). Call `mcp__tickle__get_skill` directly for two installed names,
-e.g. `name="order"` and `name="blast"` (`project` = your project), and confirm each
+e.g. `name="build"` and `name="blast"` (`project` = your project), and confirm each
 returns a **non-null `skill` whose body is that skill's full instructions** — two
 different names returning two distinct server bodies proves `get_skill` resolves each by
 name. The thin-shell `SKILL.md` files contain none of that text, so the bodies must have
@@ -198,7 +198,7 @@ rm -f .claude/skills/.install-state 2>/dev/null || : > .claude/skills/.install-s
 
 ```sh
 # remove the generated skill shells (whichever you installed), e.g. the full set:
-rm -rf $(printf '.claude/skills/%s ' attention audit blast build conform decompose discuss flesh groom intake order research size)
+rm -rf $(printf '.claude/skills/%s ' attention audit blast build conform decompose discuss flesh groom intake research size)
 # and the thin agent files, if any were installed (install-all / install-agent)
 rm -f .claude/agents/ticket-flesher.md .claude/agents/size-scanner.md \
       .claude/agents/ticket-researcher.md .claude/agents/conform-lens.md

@@ -22,10 +22,10 @@ cd /path/to/your/project
 
 # whole set (recommended): ask the MCP `list_skills`, pass the builtin names —
 # install-all.sh stamps each skill shell + only the agents those skills spawn
-~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
+~/code/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake research size
 
 # or granular:
-~/code/tickle-skills/install-skill.sh blast order
+~/code/tickle-skills/install-skill.sh blast
 ~/code/tickle-skills/install-agent.sh ticket-flesher
 ```
 

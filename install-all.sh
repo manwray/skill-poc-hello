@@ -8,7 +8,7 @@
 # names, and passes them in:
 #
 #   cd /path/to/your/project
-#   /path/to/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake order research size
+#   /path/to/tickle-skills/install-all.sh attention audit blast build conform decompose discuss flesh groom intake research size
 #
 # This script then:
 #   1. stamps a thin shell per skill (delegates to install-skill.sh), and
