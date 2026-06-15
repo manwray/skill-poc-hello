@@ -12,7 +12,7 @@
 #
 # Usage:
 #   cd /path/to/your/project
-#   /path/to/tickle-skills/install-agent.sh ticket-flesher size-scanner ticket-researcher
+#   /path/to/tickle-skills/install-agent.sh ticket-intake size-scanner ticket-researcher
 #
 # Discover available agents by asking the tickle MCP `get_agent` (or list_skills once
 # agents are surfaced there). Prereq for the agents to DO anything: the tickle MCP must
